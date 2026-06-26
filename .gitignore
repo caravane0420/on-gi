@@ -1,0 +1,32 @@
+# ── Dependencies ──
+node_modules/
+
+# ── Next.js ──
+.next/
+out/
+
+# ── Environment ──
+.env
+.env.local
+.env.*.local
+
+# ── OS / IDE ──
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# ── Build ──
+dist/
+build/
+
+# ── Debug ──
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Legacy (v1 code — 마이그레이션 이전) ──
+client/
+server/
