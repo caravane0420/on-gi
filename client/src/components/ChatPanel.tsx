@@ -32,7 +32,7 @@ export default function ChatPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-warm-200 dark:border-warm-800 flex-shrink-0">
         <ChatIcon />
