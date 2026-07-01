@@ -34,14 +34,14 @@ export default function RoomView() {
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-warm-50 dark:bg-warm-950">
       {/* ── Top Bar ──────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between gap-3 px-5 py-3 border-b border-warm-200 dark:border-warm-800 flex-shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          <h1 className="text-lg font-extrabold flex-shrink-0 text-warm-900 dark:text-warm-50">
+      <header className="flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-5 py-2.5 sm:py-3 border-b border-warm-200 dark:border-warm-800 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <h1 className="text-base sm:text-lg font-extrabold flex-shrink-0 text-warm-900 dark:text-warm-50">
             온기
           </h1>
-          <div className="h-4 w-px bg-warm-200 dark:bg-warm-700 flex-shrink-0" />
+          <div className="hidden sm:block h-4 w-px bg-warm-200 dark:bg-warm-700 flex-shrink-0" />
           {title && (
-            <span className="text-sm font-medium text-warm-600 dark:text-warm-300 truncate max-w-[220px]">
+            <span className="hidden md:inline-block text-sm font-medium text-warm-600 dark:text-warm-300 truncate max-w-[200px]">
               {isPrivate && <LockIcon />} {title}
             </span>
           )}
@@ -50,7 +50,7 @@ export default function RoomView() {
         {/* Prominent, copyable room code */}
         <RoomCodeBadge roomId={roomId ?? ''} />
 
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-0.5 sm:gap-1.5 flex-shrink-0">
           <ThemeToggle />
           {isHost && (
             <button
@@ -63,31 +63,33 @@ export default function RoomView() {
           )}
           <button
             onClick={handleLeave}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-warm-500 dark:text-warm-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+            title="나가기"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-sm text-warm-500 dark:text-warm-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
           >
             <ExitIcon />
-            나가기
+            <span className="hidden sm:inline">나가기</span>
           </button>
         </div>
       </header>
 
-      {/* ── Content ──────────────────────────────────────────────── */}
-      <div className="flex flex-1 min-h-0">
-        {/* Left: Video Player — overflow-hidden kills the stray scrollbar (#4) */}
-        <main className="flex-1 flex flex-col p-5 gap-3 overflow-hidden min-w-0">
+      {/* ── Content ── mobile: stacked (video↑ / panel↓) · desktop: row ── */}
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0">
+        {/* Video Player — fixed height on mobile, flex on desktop */}
+        <main className="flex flex-col p-3 lg:p-5 gap-3 flex-shrink-0 lg:flex-1 lg:overflow-hidden lg:min-w-0">
           <VideoPlayer />
           <VideoInput />
         </main>
 
-        {/* Right: Sidebar */}
-        <aside className="w-80 xl:w-96 flex flex-col border-l border-warm-200 dark:border-warm-800 bg-warm-100/60 dark:bg-warm-900/40 flex-shrink-0">
+        {/* Sidebar — fills remaining height on mobile, fixed width on desktop */}
+        <aside className="flex-1 min-h-0 flex flex-col border-t lg:border-t-0 lg:border-l border-warm-200 dark:border-warm-800 bg-warm-100/60 dark:bg-warm-900/40 lg:w-80 xl:w-96 lg:flex-none">
           <div className="border-b border-warm-200 dark:border-warm-800 flex-shrink-0">
             <UserList />
           </div>
           <div className="flex-1 min-h-0 flex flex-col">
             <ChatPanel />
           </div>
-          <div className="border-t border-warm-200 dark:border-warm-800 p-3 flex-shrink-0">
+          {/* Ads hidden on mobile to preserve chat space */}
+          <div className="hidden lg:block border-t border-warm-200 dark:border-warm-800 p-3 flex-shrink-0">
             <GoogleAds adSlot={AD_SLOT_ROOM} adFormat="rectangle" className="rounded-lg overflow-hidden" />
           </div>
         </aside>
