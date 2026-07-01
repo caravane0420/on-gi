@@ -32,7 +32,10 @@ export default function RoomView() {
   }, [leaveRoom]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-warm-50 dark:bg-warm-950">
+    <div
+      className="h-screen flex flex-col overflow-hidden bg-warm-50 dark:bg-warm-950"
+      style={{ height: '100dvh' }}
+    >
       {/* ── Top Bar ──────────────────────────────────────────────── */}
       <header className="flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-5 py-2.5 sm:py-3 border-b border-warm-200 dark:border-warm-800 flex-shrink-0">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -82,7 +85,7 @@ export default function RoomView() {
 
         {/* Sidebar — fills remaining height on mobile, fixed width on desktop */}
         <aside className="flex-1 min-h-0 flex flex-col border-t lg:border-t-0 lg:border-l border-warm-200 dark:border-warm-800 bg-warm-100/60 dark:bg-warm-900/40 lg:w-80 xl:w-96 lg:flex-none">
-          <div className="border-b border-warm-200 dark:border-warm-800 flex-shrink-0">
+          <div className="border-b border-warm-200 dark:border-warm-800 flex-shrink-0 max-h-32 overflow-y-auto lg:max-h-none lg:overflow-visible">
             <UserList />
           </div>
           <div className="flex-1 min-h-0 flex flex-col">

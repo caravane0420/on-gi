@@ -32,16 +32,16 @@ export default function ChatPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-warm-200 dark:border-warm-800">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-warm-200 dark:border-warm-800 flex-shrink-0">
         <ChatIcon />
         <h3 className="text-sm font-semibold text-warm-700 dark:text-warm-200">채팅</h3>
         <span className="ml-auto text-xs text-warm-400 dark:text-warm-600">{chatMessages.length}</span>
       </div>
 
-      {/* Messages */}
-      <div ref={listRef} className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
+      {/* Messages — the ONLY scrollable region */}
+      <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 space-y-2">
         {chatMessages.length === 0 && (
           <p className="text-center text-xs text-warm-400 dark:text-warm-600 mt-8">
             메시지가 아직 없습니다
@@ -73,8 +73,8 @@ export default function ChatPanel() {
         })}
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSubmit} className="p-3 border-t border-warm-200 dark:border-warm-800">
+      {/* Input — always pinned at the bottom */}
+      <form onSubmit={handleSubmit} className="flex-shrink-0 p-3 border-t border-warm-200 dark:border-warm-800">
         <div className="flex gap-2">
           <input
             type="text"
