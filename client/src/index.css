@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Reset ────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  font-family: 'Pretendard', 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  /* 온기: 라이트=웜 아이보리 / 다크=웜그레이 */
+  @apply bg-warm-50 text-warm-900 dark:bg-warm-950 dark:text-warm-100;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-warm-300/70 dark:bg-warm-700/70 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-warm-400 dark:bg-warm-600;
+}
+
+/* ── Surface / glass utilities (theme-aware) ──────────────────── */
+
+@layer components {
+  .surface {
+    @apply bg-white/80 dark:bg-warm-900/70 border border-warm-200/80 dark:border-warm-800/70 shadow-sm;
+  }
+
+  .surface-raised {
+    @apply bg-white dark:bg-warm-900 border border-warm-200 dark:border-warm-800 shadow-lg shadow-warm-900/5 dark:shadow-black/30;
+  }
+
+  .glow-brand {
+    box-shadow:
+      0 0 24px rgba(245, 158, 11, 0.12),
+      0 0 60px rgba(245, 158, 11, 0.05);
+  }
+}
+
+/* ── Animations ───────────────────────────────────────────────── */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.45s ease-out forwards;
+}
