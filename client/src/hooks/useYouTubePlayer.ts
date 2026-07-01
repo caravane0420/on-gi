@@ -16,8 +16,8 @@ import { socket } from '../lib/socket';
 import { useRoomStore } from '../stores/useRoomStore';
 import { PlayerState } from '../types';
 
-const HEARTBEAT_INTERVAL = 3_000; // 3 seconds
-const SYNC_THRESHOLD = 0.5;       // max acceptable drift in seconds
+const HEARTBEAT_INTERVAL = 1_500; // authoritative snapshot every 1.5s
+const SYNC_THRESHOLD = 0.75;      // max acceptable drift in seconds
 const SYNC_GUARD_MS = 700;        // ignore echo events for this long
 
 /** Load the YouTube Iframe API script (idempotent) */
@@ -132,10 +132,18 @@ export function useYouTubePlayer(containerId: string) {
         events: {
           onReady: () => {
             isReadyRef.current = true;
-            // If the current room already has a video, cue it up
-            const { videoId: vId } = useRoomStore.getState();
-            if (vId) {
-              guardSync(() => playerRef.current?.cueVideoById(vId, 0));
+            // Cue the current video AT the host's known position so a late
+            // viewer starts synced instead of flashing at 0:00.
+            const st = useRoomStore.getState();
+            if (st.videoId) {
+              const startAt = st.isHost() ? 0 : Math.max(0, st.currentTime);
+              guardSync(() => {
+                if (!st.isHost() && st.videoState === PlayerState.PLAYING) {
+                  playerRef.current?.loadVideoById(st.videoId, startAt); // loads + plays
+                } else {
+                  playerRef.current?.cueVideoById(st.videoId, startAt);
+                }
+              });
             }
             // Apply any force-sync that raced ahead of readiness
             if (pendingForceRef.current) {
@@ -181,12 +189,16 @@ export function useYouTubePlayer(containerId: string) {
     }
 
     heartbeatRef.current = setInterval(() => {
-      if (!playerRef.current || !isReadyRef.current) return;
-      if (playerRef.current.getPlayerState() === PlayerState.PLAYING) {
-        socket.emit('sync:heartbeat', {
-          currentTime: playerRef.current.getCurrentTime(),
-        });
-      }
+      const player = playerRef.current;
+      if (!player || !isReadyRef.current) return;
+      const { videoId: vId } = useRoomStore.getState();
+      if (!vId) return;
+      // Authoritative snapshot: always send time + state so viewers can
+      // reconcile play/pause AND seek within one tick.
+      socket.emit('sync:heartbeat', {
+        currentTime: player.getCurrentTime(),
+        state: player.getPlayerState(),
+      });
     }, HEARTBEAT_INTERVAL);
 
     return () => stopHeartbeat();
@@ -200,8 +212,9 @@ export function useYouTubePlayer(containerId: string) {
 
     const player = playerRef.current;
 
+    const drift = Math.abs(player.getCurrentTime() - hostTime);
+
     if (videoState === PlayerState.PLAYING) {
-      const drift = Math.abs(player.getCurrentTime() - hostTime);
       if (drift > SYNC_THRESHOLD) {
         guardSync(() => player.seekTo(hostTime, true));
       }
@@ -209,6 +222,10 @@ export function useYouTubePlayer(containerId: string) {
         player.playVideo();
       }
     } else if (videoState === PlayerState.PAUSED) {
+      // Match the paused position too (issue: seek didn't sync while paused)
+      if (drift > SYNC_THRESHOLD) {
+        guardSync(() => player.seekTo(hostTime, true));
+      }
       if (player.getPlayerState() !== PlayerState.PAUSED) {
         player.pauseVideo();
       }

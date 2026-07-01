@@ -351,8 +351,14 @@ function handleSyncHeartbeat(
       if (!roomId) return;
       if (!(await roomService.isHost(roomId, socket.data.userId))) return;
 
-      await roomService.updateSyncState(roomId, { currentTime: data.currentTime });
-      socket.to(roomId).emit('sync:heartbeat', { currentTime: data.currentTime });
+      await roomService.updateSyncState(roomId, {
+        currentTime: data.currentTime,
+        ...(data.state !== undefined ? { videoState: data.state } : {}),
+      });
+      socket.to(roomId).emit('sync:heartbeat', {
+        currentTime: data.currentTime,
+        state: data.state,
+      });
     } catch (err) {
       console.error('[sync:heartbeat] Error:', err);
     }

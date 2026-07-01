@@ -215,7 +215,13 @@ export const useRoomStore = create<RoomStoreState>((set, get) => ({
       set({ videoState: state, currentTime, videoId });
     });
 
-    socket.on('sync:heartbeat', ({ currentTime }) => set({ currentTime }));
+    socket.on('sync:heartbeat', ({ currentTime, state }: { currentTime: number; state?: number }) => {
+      set((s) => ({
+        currentTime,
+        // Only PLAYING(1)/PAUSED(2) drive the viewer; ignore transient states
+        videoState: state === 1 || state === 2 ? state : s.videoState,
+      }));
+    });
 
     socket.on('sync:buffering', () => set({ videoState: 2 }));
 

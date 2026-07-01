@@ -80,7 +80,7 @@ export interface ServerToClientEvents {
     videoId: string;
   }) => void;
 
-  'sync:heartbeat': (data: { currentTime: number }) => void;
+  'sync:heartbeat': (data: { currentTime: number; state?: number }) => void;
 
   'sync:buffering': () => void;
 
@@ -161,7 +161,7 @@ export interface ClientToServerEvents {
     videoId: string;
   }) => void;
 
-  'sync:heartbeat': (data: { currentTime: number }) => void;
+  'sync:heartbeat': (data: { currentTime: number; state?: number }) => void;
 
   /** Host's reply to `sync:request-time` — relayed to the requester */
   'sync:provide-time': (data: {
