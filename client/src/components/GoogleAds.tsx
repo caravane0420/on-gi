@@ -11,6 +11,14 @@ import { useEffect, useRef } from 'react';
 /** Publisher ID — shared across the app */
 export const AD_CLIENT = 'ca-pub-8340527043375240';
 
+/**
+ * Master switch. Keep OFF until you have a real, APPROVED AdSense unit
+ * (a valid slot ID). With placeholder slots the ad renders as an ugly
+ * blank white box, so we hide it entirely instead.
+ * → Set to true AND replace the AD_SLOT_* values once approved.
+ */
+const ADS_ENABLED = false;
+
 interface GoogleAdsProps {
   /** Ad unit slot ID */
   adSlot: string;
@@ -38,6 +46,7 @@ export default function GoogleAds({
   const isPushed = useRef(false);
 
   useEffect(() => {
+    if (!ADS_ENABLED) return;
     if (isPushed.current) return;
 
     const timer = window.setTimeout(() => {
@@ -52,6 +61,9 @@ export default function GoogleAds({
 
     return () => window.clearTimeout(timer);
   }, []);
+
+  // No approved ad unit yet → render nothing (no blank white box)
+  if (!ADS_ENABLED) return null;
 
   return (
     <div className={`google-ads-container ${className}`}>
