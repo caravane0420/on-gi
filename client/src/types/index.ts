@@ -69,6 +69,9 @@ export function extractVideoId(input: string): string | null {
       if (url.pathname.startsWith('/shorts/')) {
         return url.pathname.split('/shorts/')[1]?.split('?')[0] || null;
       }
+      if (url.pathname.startsWith('/live/')) {
+        return url.pathname.split('/live/')[1]?.split('?')[0] || null;
+      }
     }
 
     if (url.hostname === 'youtu.be') {
