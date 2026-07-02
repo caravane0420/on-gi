@@ -65,6 +65,8 @@ export function useYouTubePlayer(containerId: string) {
     videoId,
     videoState,
     currentTime: hostTime,
+    hostVolume,
+    hostMuted,
     isHost: isHostFn,
   } = useRoomStore();
 
@@ -193,11 +195,20 @@ export function useYouTubePlayer(containerId: string) {
       if (!player || !isReadyRef.current) return;
       const { videoId: vId } = useRoomStore.getState();
       if (!vId) return;
-      // Authoritative snapshot: always send time + state so viewers can
-      // reconcile play/pause AND seek within one tick.
+      // Authoritative snapshot: time + state + volume so viewers can
+      // reconcile play/pause, seek AND volume within one tick.
+      let volume = 100;
+      let muted = false;
+      try {
+        volume = player.getVolume();
+        muted = player.isMuted();
+      } catch { /* ignore */ }
+
       socket.emit('sync:heartbeat', {
         currentTime: player.getCurrentTime(),
         state: player.getPlayerState(),
+        volume,
+        muted,
       });
     }, HEARTBEAT_INTERVAL);
 
@@ -231,6 +242,25 @@ export function useYouTubePlayer(containerId: string) {
       }
     }
   }, [isHost, videoState, hostTime, guardSync]);
+
+  // ── 4b. Viewer: apply host volume / mute ─────────────────────
+
+  useEffect(() => {
+    if (isHost) return;
+    const player = playerRef.current;
+    if (!player || !isReadyRef.current) return;
+
+    try {
+      if (hostMuted) {
+        if (!player.isMuted()) player.mute();
+      } else {
+        if (player.isMuted()) player.unMute();
+        if (Math.abs(player.getVolume() - hostVolume) > 1) {
+          player.setVolume(hostVolume);
+        }
+      }
+    } catch { /* ignore */ }
+  }, [isHost, hostVolume, hostMuted]);
 
   // ── 5. Player-level socket events (host request / force-sync) ─
 

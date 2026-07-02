@@ -25,6 +25,9 @@ interface RoomStoreState {
   videoId: string;
   videoState: number;
   currentTime: number;
+  /** Host's volume (0–100) and mute state, mirrored to viewers */
+  hostVolume: number;
+  hostMuted: boolean;
   chatMessages: ChatMessage[];
   nickname: string;
   title: string;
@@ -70,6 +73,8 @@ const initialState = {
   videoId: '',
   videoState: 2,
   currentTime: 0,
+  hostVolume: 100,
+  hostMuted: false,
   chatMessages: [] as ChatMessage[],
   nickname: '',
   title: '',
@@ -215,13 +220,23 @@ export const useRoomStore = create<RoomStoreState>((set, get) => ({
       set({ videoState: state, currentTime, videoId });
     });
 
-    socket.on('sync:heartbeat', ({ currentTime, state }: { currentTime: number; state?: number }) => {
-      set((s) => ({
+    socket.on(
+      'sync:heartbeat',
+      ({
         currentTime,
-        // Only PLAYING(1)/PAUSED(2) drive the viewer; ignore transient states
-        videoState: state === 1 || state === 2 ? state : s.videoState,
-      }));
-    });
+        state,
+        volume,
+        muted,
+      }: { currentTime: number; state?: number; volume?: number; muted?: boolean }) => {
+        set((s) => ({
+          currentTime,
+          // Only PLAYING(1)/PAUSED(2) drive the viewer; ignore transient states
+          videoState: state === 1 || state === 2 ? state : s.videoState,
+          hostVolume: typeof volume === 'number' ? volume : s.hostVolume,
+          hostMuted: typeof muted === 'boolean' ? muted : s.hostMuted,
+        }));
+      },
+    );
 
     socket.on('sync:buffering', () => set({ videoState: 2 }));
 

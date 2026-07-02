@@ -358,6 +358,8 @@ function handleSyncHeartbeat(
       socket.to(roomId).emit('sync:heartbeat', {
         currentTime: data.currentTime,
         state: data.state,
+        volume: data.volume,
+        muted: data.muted,
       });
     } catch (err) {
       console.error('[sync:heartbeat] Error:', err);
