@@ -51,12 +51,12 @@ body {
 
 @layer components {
   .surface {
-    @apply bg-white dark:bg-warm-900 border border-warm-200 dark:border-warm-800;
+    @apply bg-[#fffdf6] dark:bg-warm-900 border border-warm-200 dark:border-warm-800;
   }
 
-  /* Flat card: solid surface, thin warm border, very subtle shadow */
+  /* Flat card: warm-white surface on the cream page, thin warm border */
   .surface-raised {
-    @apply bg-white dark:bg-warm-900 border border-warm-200 dark:border-warm-800 shadow-sm dark:shadow-none;
+    @apply bg-[#fffdf6] dark:bg-warm-900 border border-warm-200/80 dark:border-warm-800 shadow-sm shadow-warm-900/[0.04] dark:shadow-none;
   }
 
   /* Kept as a no-op so existing class refs don't break (glow removed) */
