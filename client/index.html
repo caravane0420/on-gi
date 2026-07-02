@@ -14,14 +14,11 @@
     <script>
       (function () {
         try {
+          // Default to warm light; only dark if the user explicitly chose it
           var saved = localStorage.getItem('ongi:theme');
-          var dark =
-            saved === 'dark' ||
-            (!saved &&
-              window.matchMedia &&
-              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var dark = saved === 'dark';
           var root = document.documentElement;
-          root.classList.toggle('dark', !!dark);
+          root.classList.toggle('dark', dark);
           root.style.colorScheme = dark ? 'dark' : 'light';
         } catch (e) {}
       })();

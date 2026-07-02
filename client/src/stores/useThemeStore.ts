@@ -17,11 +17,11 @@ function resolveInitialTheme(): Theme {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === 'light' || saved === 'dark') return saved;
-    // Follow OS preference on first visit
-    if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark';
   } catch {
     /* ignore */
   }
+  // Default to the warm light theme ('온기' feels warmest bright);
+  // users can still opt into dark via the toggle.
   return 'light';
 }
 
