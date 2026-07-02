@@ -23,6 +23,31 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export interface PlaylistItem {
+  id: string;
+  videoId: string;
+  title: string;
+  addedById: string;
+  addedByName: string;
+}
+
+export interface VideoRequest {
+  id: string;
+  videoId: string;
+  title: string;
+  byId: string;
+  byName: string;
+}
+
+/** A floating reaction currently animating over the video */
+export interface Reaction {
+  id: string;
+  emoji: string;
+  nickname: string;
+  /** horizontal start position 0–100 (%) */
+  left: number;
+}
+
 export interface RoomState {
   roomId: string;
   hostId: string;
@@ -36,6 +61,9 @@ export interface RoomState {
   hasPassword: boolean;
   /** Recent chat history replayed on join / rejoin */
   chatHistory: ChatMessage[];
+  playlist: PlaylistItem[];
+  currentItemId: string | null;
+  requests: VideoRequest[];
 }
 
 /** YouTube Player State constants (same values as YT.PlayerState) */

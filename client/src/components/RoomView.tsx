@@ -9,10 +9,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRoomStore } from '../stores/useRoomStore';
 import VideoPlayer from './VideoPlayer';
-import VideoInput from './VideoInput';
 import UserList from './UserList';
 import ChatPanel from './ChatPanel';
 import RoomSettings from './RoomSettings';
+import PlaylistPanel from './PlaylistPanel';
+import ReactionBar from './ReactionBar';
 import ThemeToggle from './ThemeToggle';
 import GoogleAds from './GoogleAds';
 
@@ -24,12 +25,27 @@ export default function RoomView() {
   const isPrivate = useRoomStore((s) => s.isPrivate);
   const leaveRoom = useRoomStore((s) => s.leaveRoom);
   const isHost = useRoomStore((s) => s.isHost());
+  const playlist = useRoomStore((s) => s.playlist);
+  const requests = useRoomStore((s) => s.requests);
+  const nextVideo = useRoomStore((s) => s.nextVideo);
+  const notice = useRoomStore((s) => s.notice);
+  const clearNotice = useRoomStore((s) => s.clearNotice);
 
   const [showSettings, setShowSettings] = useState(false);
+  const [showPlaylist, setShowPlaylist] = useState(false);
 
   const handleLeave = useCallback(() => {
     if (window.confirm('방을 나가시겠습니까?')) leaveRoom();
   }, [leaveRoom]);
+
+  // Auto-dismiss the request-result toast
+  useEffect(() => {
+    if (!notice) return;
+    const t = window.setTimeout(clearNotice, 4000);
+    return () => window.clearTimeout(t);
+  }, [notice, clearNotice]);
+
+  const pendingCount = isHost ? requests.length : 0;
 
   return (
     <div
@@ -80,7 +96,34 @@ export default function RoomView() {
         {/* Video Player — fixed height on mobile, flex on desktop */}
         <main className="flex flex-col p-3 lg:p-5 gap-3 flex-shrink-0 lg:flex-1 lg:overflow-hidden lg:min-w-0">
           <VideoPlayer />
-          <VideoInput />
+
+          {/* Reactions + playlist / skip controls */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <ReactionBar />
+            <div className="flex items-center gap-2">
+              {isHost && (
+                <button
+                  onClick={nextVideo}
+                  title="다음 곡"
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium bg-warm-100 dark:bg-warm-850 hover:bg-warm-200 dark:hover:bg-warm-800 text-warm-700 dark:text-warm-200 transition-colors active:scale-95"
+                >
+                  <SkipIcon /> 다음 곡
+                </button>
+              )}
+              <button
+                onClick={() => setShowPlaylist(true)}
+                className="relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-brand-500 hover:bg-brand-600 text-warm-950 transition-colors active:scale-95"
+              >
+                <ListIcon /> 재생목록
+                <span className="text-xs opacity-80">{playlist.length}</span>
+                {pendingCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold">
+                    {pendingCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
         </main>
 
         {/* Sidebar — fills remaining height on mobile, fixed width on desktop */}
@@ -99,6 +142,16 @@ export default function RoomView() {
       </div>
 
       <RoomSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      <PlaylistPanel isOpen={showPlaylist} onClose={() => setShowPlaylist(false)} />
+
+      {/* Request-result toast */}
+      {notice && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
+          <div className="px-4 py-2.5 rounded-xl bg-warm-900 dark:bg-warm-100 text-warm-50 dark:text-warm-900 text-sm font-medium shadow-lg max-w-[90vw] truncate">
+            {notice}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -193,6 +246,22 @@ function LockIcon() {
   return (
     <svg className="inline w-3.5 h-3.5 text-brand-500 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+    </svg>
+  );
+}
+
+function SkipIcon() {
+  return (
+    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M6 5v14l8-7zM16 5h2v14h-2z" />
+    </svg>
+  );
+}
+
+function ListIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" />
     </svg>
   );
 }

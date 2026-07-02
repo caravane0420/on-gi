@@ -4,6 +4,7 @@
 
 import { useYouTubePlayer } from '../hooks/useYouTubePlayer';
 import { useRoomStore } from '../stores/useRoomStore';
+import ReactionOverlay from './ReactionOverlay';
 
 const PLAYER_CONTAINER_ID = 'yt-player';
 
@@ -26,6 +27,8 @@ export default function VideoPlayer() {
           </div>
         )}
         <div id={PLAYER_CONTAINER_ID} className="absolute inset-0" />
+        {/* Floating reactions layer */}
+        <ReactionOverlay />
       </div>
 
       {/* Sync indicator */}

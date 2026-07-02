@@ -15,7 +15,15 @@ import {
   saveSession,
   clearSession,
 } from '../lib/session';
-import type { UserInfo, RoomState, ChatMessage, RoomSettings } from '../types';
+import type {
+  UserInfo,
+  RoomState,
+  ChatMessage,
+  RoomSettings,
+  PlaylistItem,
+  VideoRequest,
+  Reaction,
+} from '../types';
 
 interface RoomStoreState {
   /* ── State ──────────────────────────────────────────────────── */
@@ -38,6 +46,15 @@ interface RoomStoreState {
   /** True while an automatic rejoin is being attempted after a refresh */
   reconnecting: boolean;
 
+  /* ── Playlist / requests / reactions ────────────────────────── */
+  playlist: PlaylistItem[];
+  currentItemId: string | null;
+  requests: VideoRequest[];
+  /** Floating reactions currently animating over the video */
+  reactions: Reaction[];
+  /** Transient toast (e.g. request approved/rejected) */
+  notice: string;
+
   /* ── Getters ────────────────────────────────────────────────── */
   isHost: () => boolean;
   myId: () => string;
@@ -56,6 +73,18 @@ interface RoomStoreState {
   leaveRoom: () => void;
   sendChatMessage: (message: string) => void;
   changeVideo: (videoId: string) => void;
+  /* Playlist actions */
+  addToPlaylist: (videoId: string) => void;
+  requestVideo: (videoId: string) => void;
+  approveRequest: (requestId: string) => void;
+  rejectRequest: (requestId: string) => void;
+  removeFromPlaylist: (itemId: string) => void;
+  playItem: (itemId: string) => void;
+  nextVideo: () => void;
+  /* Reactions */
+  sendReaction: (emoji: string) => void;
+  removeReaction: (id: string) => void;
+  clearNotice: () => void;
   kickUser: (targetUserId: string) => void;
   updateSettings: (settings: { title?: string; isPrivate?: boolean; password?: string }) => void;
   clearKickedMessage: () => void;
@@ -82,6 +111,11 @@ const initialState = {
   hasPassword: false,
   kickedMessage: '',
   reconnecting: false,
+  playlist: [] as PlaylistItem[],
+  currentItemId: null as string | null,
+  requests: [] as VideoRequest[],
+  reactions: [] as Reaction[],
+  notice: '',
 };
 
 export const useRoomStore = create<RoomStoreState>((set, get) => ({
@@ -175,6 +209,21 @@ export const useRoomStore = create<RoomStoreState>((set, get) => ({
     set({ videoId, currentTime: 0, videoState: 2 });
   },
 
+  /* ── Playlist ──────────────────────────────────────────────── */
+  addToPlaylist: (videoId) => socket.emit('playlist:add', { videoId }),
+  requestVideo: (videoId) => socket.emit('playlist:request', { videoId }),
+  approveRequest: (requestId) => socket.emit('playlist:approve', { requestId }),
+  rejectRequest: (requestId) => socket.emit('playlist:reject', { requestId }),
+  removeFromPlaylist: (itemId) => socket.emit('playlist:remove', { itemId }),
+  playItem: (itemId) => socket.emit('playlist:play', { itemId }),
+  nextVideo: () => socket.emit('playlist:next'),
+
+  /* ── Reactions ─────────────────────────────────────────────── */
+  sendReaction: (emoji) => socket.emit('reaction:send', { emoji }),
+  removeReaction: (id) =>
+    set((s) => ({ reactions: s.reactions.filter((r) => r.id !== id) })),
+  clearNotice: () => set({ notice: '' }),
+
   kickUser: (targetUserId) => {
     socket.emit('room:kick', { targetUserId });
   },
@@ -244,13 +293,42 @@ export const useRoomStore = create<RoomStoreState>((set, get) => ({
       set({ videoState: 1, currentTime });
     });
 
-    socket.on('video:changed', ({ videoId }) => {
-      set({ videoId, currentTime: 0, videoState: 2 });
+    socket.on('video:changed', ({ videoId, autoplay }: { videoId: string; autoplay?: boolean }) => {
+      // autoplay → mark PLAYING so host & viewers auto-start the new item
+      set({ videoId, currentTime: 0, videoState: autoplay ? 1 : 2 });
     });
 
     socket.on('chat:message', (msg: ChatMessage) => {
       set((s) => ({ chatMessages: [...s.chatMessages, msg] }));
     });
+
+    socket.on(
+      'playlist:updated',
+      ({ playlist, currentItemId }: { playlist: PlaylistItem[]; currentItemId: string | null }) => {
+        set({ playlist, currentItemId });
+      },
+    );
+
+    socket.on('requests:updated', ({ requests }: { requests: VideoRequest[] }) => {
+      set({ requests });
+    });
+
+    socket.on('request:result', ({ approved, title }: { approved: boolean; title: string }) => {
+      set({
+        notice: approved
+          ? `신청한 영상이 추가되었어요: ${title}`
+          : `신청이 거절되었어요: ${title}`,
+      });
+    });
+
+    socket.on(
+      'reaction:broadcast',
+      ({ emoji, nickname, id }: { emoji: string; nickname: string; id: string }) => {
+        // Random horizontal lane (10–85%) so reactions don't stack
+        const left = 10 + Math.floor(Math.random() * 75);
+        set((s) => ({ reactions: [...s.reactions, { id, emoji, nickname, left }] }));
+      },
+    );
 
     socket.on('room:error', ({ message }) => {
       console.error('[Room Error]', message);
@@ -269,6 +347,10 @@ export const useRoomStore = create<RoomStoreState>((set, get) => ({
     socket.off('sync:buffering-end');
     socket.off('video:changed');
     socket.off('chat:message');
+    socket.off('playlist:updated');
+    socket.off('requests:updated');
+    socket.off('request:result');
+    socket.off('reaction:broadcast');
     socket.off('room:error');
   },
 }));
@@ -294,5 +376,8 @@ function applyRoomState(
     isPrivate: room.isPrivate,
     hasPassword: room.hasPassword,
     kickedMessage: '',
+    playlist: room.playlist ?? [],
+    currentItemId: room.currentItemId ?? null,
+    requests: room.requests ?? [],
   });
 }

@@ -178,7 +178,12 @@ export function useYouTubePlayer(containerId: string) {
 
   useEffect(() => {
     if (!playerRef.current || !isReadyRef.current || !videoId) return;
-    guardSync(() => playerRef.current?.cueVideoById(videoId, 0));
+    // If the item was queued with autoplay, the store marks it PLAYING.
+    const autoplay = useRoomStore.getState().videoState === PlayerState.PLAYING;
+    guardSync(() => {
+      if (autoplay) playerRef.current?.loadVideoById(videoId, 0); // loads + plays
+      else playerRef.current?.cueVideoById(videoId, 0);           // loads paused
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]);
 
@@ -309,6 +314,11 @@ export function useYouTubePlayer(containerId: string) {
       currentTime: event.target.getCurrentTime(),
       videoId: store.videoId,
     });
+
+    // Video finished → auto-advance to the next playlist item
+    if (event.data === PlayerState.ENDED) {
+      socket.emit('playlist:next');
+    }
   }, []);
 
   // ── Helpers ───────────────────────────────────────────────────

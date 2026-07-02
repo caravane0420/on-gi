@@ -33,6 +33,24 @@ export interface ChatMessageData {
   timestamp: number;
 }
 
+/** An entry in the shared playlist (queue) */
+export interface PlaylistItem {
+  id: string;
+  videoId: string;
+  title: string;
+  addedById: string;
+  addedByName: string;
+}
+
+/** A viewer's pending request to add a video (host approves/rejects) */
+export interface VideoRequest {
+  id: string;
+  videoId: string;
+  title: string;
+  byId: string;
+  byName: string;
+}
+
 export interface RoomState {
   roomId: string;
   /** userId of the current host */
@@ -47,6 +65,10 @@ export interface RoomState {
   hasPassword: boolean;
   /** Recent chat history replayed to a joining/rejoining client */
   chatHistory: ChatMessageData[];
+  /** Shared playlist + which item is playing + pending requests */
+  playlist: PlaylistItem[];
+  currentItemId: string | null;
+  requests: VideoRequest[];
 }
 
 // ── Server → Client Events ──────────────────────────────────────
@@ -107,9 +129,24 @@ export interface ServerToClientEvents {
     state: number;
   }) => void;
 
-  'video:changed': (data: { videoId: string }) => void;
+  'video:changed': (data: { videoId: string; autoplay?: boolean }) => void;
 
   'chat:message': (data: ChatMessageData) => void;
+
+  /** Full playlist state (list + which item is current) */
+  'playlist:updated': (data: {
+    playlist: PlaylistItem[];
+    currentItemId: string | null;
+  }) => void;
+
+  /** Pending requests list (host sees approve/reject) */
+  'requests:updated': (data: { requests: VideoRequest[] }) => void;
+
+  /** A viewer's request outcome, sent to that requester */
+  'request:result': (data: { approved: boolean; title: string }) => void;
+
+  /** A floating reaction to render over the video for everyone */
+  'reaction:broadcast': (data: { emoji: string; nickname: string; id: string }) => void;
 
   'room:error': (data: { message: string }) => void;
 }
@@ -184,6 +221,24 @@ export interface ClientToServerEvents {
   'chat:message': (data: { message: string }) => void;
 
   'video:change': (data: { videoId: string }) => void;
+
+  // ── Playlist ──
+  /** Host adds a video straight to the playlist */
+  'playlist:add': (data: { videoId: string }) => void;
+  /** Viewer requests a video (host must approve) */
+  'playlist:request': (data: { videoId: string }) => void;
+  /** Host approves / rejects a pending request */
+  'playlist:approve': (data: { requestId: string }) => void;
+  'playlist:reject': (data: { requestId: string }) => void;
+  /** Host removes a playlist item */
+  'playlist:remove': (data: { itemId: string }) => void;
+  /** Host jumps to a specific item */
+  'playlist:play': (data: { itemId: string }) => void;
+  /** Host skips to the next item */
+  'playlist:next': () => void;
+
+  // ── Reactions ──
+  'reaction:send': (data: { emoji: string }) => void;
 }
 
 // ── Internal Server Types ────────────────────────────────────────

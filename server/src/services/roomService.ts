@@ -24,6 +24,8 @@ import type {
   RoomState,
   RoomSettings,
   ChatMessageData,
+  PlaylistItem,
+  VideoRequest,
 } from '../socket/types.js';
 import { config } from '../config.js';
 
@@ -37,6 +39,8 @@ export class RoomService {
   private kNicks = (id: string) => `room:${id}:nicknames`;
   private kSockets = (id: string) => `room:${id}:sockets`;
   private kChat = (id: string) => `room:${id}:chat`;
+  private kPlaylist = (id: string) => `room:${id}:playlist`;
+  private kRequests = (id: string) => `room:${id}:requests`;
   private kUserRoom = (userId: string) => `user:${userId}:room`;
   private kSocketUser = (socketId: string) => `socket:${socketId}`;
 
@@ -177,11 +181,13 @@ export class RoomService {
   /* ─────────────── Read ─────────────── */
 
   async getRoom(roomId: string): Promise<RoomState> {
-    const [meta, userIds, nicknames, chatRaw] = await Promise.all([
+    const [meta, userIds, nicknames, chatRaw, playlist, requests] = await Promise.all([
       this.redis.hgetall(this.kRoom(roomId)),
       this.redis.lrange(this.kUsers(roomId), 0, -1),
       this.redis.hgetall(this.kNicks(roomId)),
       this.redis.lrange(this.kChat(roomId), 0, -1),
+      this.getPlaylist(roomId),
+      this.getRequests(roomId),
     ]);
 
     const users: UserInfo[] = userIds.map((id) => ({
@@ -212,7 +218,100 @@ export class RoomService {
       isPrivate: meta.isPrivate === '1',
       hasPassword: !!meta.password && meta.password.length > 0,
       chatHistory,
+      playlist,
+      currentItemId: meta.currentItemId || null,
+      requests,
     };
+  }
+
+  /* ─────────────── Playlist ─────────────── */
+
+  async getPlaylist(roomId: string): Promise<PlaylistItem[]> {
+    const raw = await this.redis.lrange(this.kPlaylist(roomId), 0, -1);
+    return raw
+      .map((r) => { try { return JSON.parse(r) as PlaylistItem; } catch { return null; } })
+      .filter((x): x is PlaylistItem => x !== null);
+  }
+
+  async addPlaylistItem(roomId: string, item: PlaylistItem): Promise<void> {
+    const p = this.redis.pipeline();
+    p.rpush(this.kPlaylist(roomId), JSON.stringify(item));
+    p.expire(this.kPlaylist(roomId), config.roomTtlSec);
+    await p.exec();
+  }
+
+  /** Overwrite the whole playlist (used for remove/reorder) */
+  private async setPlaylist(roomId: string, items: PlaylistItem[]): Promise<void> {
+    const key = this.kPlaylist(roomId);
+    const p = this.redis.pipeline();
+    p.del(key);
+    if (items.length) p.rpush(key, ...items.map((i) => JSON.stringify(i)));
+    p.expire(key, config.roomTtlSec);
+    await p.exec();
+  }
+
+  async removePlaylistItem(roomId: string, itemId: string): Promise<void> {
+    const items = await this.getPlaylist(roomId);
+    await this.setPlaylist(roomId, items.filter((i) => i.id !== itemId));
+  }
+
+  async getCurrentItemId(roomId: string): Promise<string | null> {
+    return (await this.redis.hget(this.kRoom(roomId), 'currentItemId')) || null;
+  }
+
+  /** Point "now playing" at an item and mirror its videoId into room state */
+  async setCurrentItem(roomId: string, itemId: string | null): Promise<PlaylistItem | null> {
+    const items = await this.getPlaylist(roomId);
+    const item = itemId ? items.find((i) => i.id === itemId) || null : null;
+    await this.redis.hset(this.kRoom(roomId), {
+      currentItemId: item ? item.id : '',
+      videoId: item ? item.videoId : '',
+      currentTime: '0',
+      videoState: '2',
+      lastSyncAt: String(Date.now()),
+    });
+    return item;
+  }
+
+  /** The item after the current one (null if current is last / missing) */
+  async getNextItem(roomId: string): Promise<PlaylistItem | null> {
+    const [items, currentId] = await Promise.all([
+      this.getPlaylist(roomId),
+      this.getCurrentItemId(roomId),
+    ]);
+    if (!items.length) return null;
+    const idx = items.findIndex((i) => i.id === currentId);
+    return items[idx + 1] || null;
+  }
+
+  /* ─────────────── Requests ─────────────── */
+
+  async getRequests(roomId: string): Promise<VideoRequest[]> {
+    const raw = await this.redis.lrange(this.kRequests(roomId), 0, -1);
+    return raw
+      .map((r) => { try { return JSON.parse(r) as VideoRequest; } catch { return null; } })
+      .filter((x): x is VideoRequest => x !== null);
+  }
+
+  async addRequest(roomId: string, req: VideoRequest): Promise<void> {
+    const p = this.redis.pipeline();
+    p.rpush(this.kRequests(roomId), JSON.stringify(req));
+    p.expire(this.kRequests(roomId), config.roomTtlSec);
+    await p.exec();
+  }
+
+  /** Remove a request by id and return it (null if not found) */
+  async removeRequest(roomId: string, requestId: string): Promise<VideoRequest | null> {
+    const reqs = await this.getRequests(roomId);
+    const found = reqs.find((r) => r.id === requestId) || null;
+    const key = this.kRequests(roomId);
+    const p = this.redis.pipeline();
+    p.del(key);
+    const remaining = reqs.filter((r) => r.id !== requestId);
+    if (remaining.length) p.rpush(key, ...remaining.map((r) => JSON.stringify(r)));
+    p.expire(key, config.roomTtlSec);
+    await p.exec();
+    return found;
   }
 
   async roomExists(roomId: string): Promise<boolean> {
@@ -343,6 +442,8 @@ export class RoomService {
       this.kNicks(roomId),
       this.kSockets(roomId),
       this.kChat(roomId),
+      this.kPlaylist(roomId),
+      this.kRequests(roomId),
     );
   }
 }

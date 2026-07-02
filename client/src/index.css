@@ -84,3 +84,14 @@ body {
 .animate-slide-up {
   animation: slide-up 0.45s ease-out forwards;
 }
+
+/* Floating reactions rising over the video */
+@keyframes reaction-float {
+  0%   { opacity: 0; transform: translateY(0) scale(0.6); }
+  15%  { opacity: 1; transform: translateY(-8%) scale(1); }
+  100% { opacity: 0; transform: translateY(-340%) scale(1.15); }
+}
+
+.animate-reaction {
+  animation: reaction-float 2.4s ease-out forwards;
+}

@@ -58,7 +58,28 @@ export function registerHandlers(
   handleSyncProvideTime(io, socket, roomService);
   handleVideoChange(io, socket, roomService);
   handleChatMessage(io, socket, roomService);
+  handlePlaylist(io, socket, roomService);
+  handleReaction(io, socket, roomService);
   handleDisconnect(io, socket, roomService);
+}
+
+// ── YouTube title (server-side oEmbed, no API key, no CORS issue) ──
+
+async function fetchYouTubeTitle(videoId: string): Promise<string> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2500);
+    const res = await fetch(
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
+      { signal: controller.signal },
+    );
+    clearTimeout(timer);
+    if (!res.ok) return '';
+    const data = (await res.json()) as { title?: string };
+    return typeof data.title === 'string' ? data.title : '';
+  } catch {
+    return '';
+  }
 }
 
 // ── Room: Create ────────────────────────────────────────────────
@@ -456,6 +477,189 @@ function handleChatMessage(
     } catch (err) {
       console.error('[chat:message] Error:', err);
     }
+  });
+}
+
+// ── Playlist (add / request / approve / reject / remove / play / next) ──
+
+const ALLOWED_REACTIONS = new Set(['❤️', '😂', '👏', '🔥', '😮', '😢', '👍', '🎉']);
+
+async function broadcastPlaylist(io: TypedServer, rs: RoomService, roomId: string): Promise<void> {
+  const [playlist, currentItemId] = await Promise.all([
+    rs.getPlaylist(roomId),
+    rs.getCurrentItemId(roomId),
+  ]);
+  io.to(roomId).emit('playlist:updated', { playlist, currentItemId });
+}
+
+async function broadcastRequests(io: TypedServer, rs: RoomService, roomId: string): Promise<void> {
+  const requests = await rs.getRequests(roomId);
+  io.to(roomId).emit('requests:updated', { requests });
+}
+
+/** Switch the now-playing item, tell everyone to load it, refresh playlist. */
+async function changeCurrent(
+  io: TypedServer,
+  rs: RoomService,
+  roomId: string,
+  itemId: string | null,
+  autoplay: boolean,
+): Promise<void> {
+  const item = await rs.setCurrentItem(roomId, itemId);
+  io.to(roomId).emit('video:changed', { videoId: item ? item.videoId : '', autoplay });
+  await broadcastPlaylist(io, rs, roomId);
+}
+
+function handlePlaylist(io: TypedServer, socket: TypedSocket, rs: RoomService): void {
+  const roomOf = async () =>
+    socket.data.roomId ?? (await rs.getRoomByUser(socket.data.userId));
+  const isHost = async (roomId: string) => rs.isHost(roomId, socket.data.userId);
+
+  // Host adds directly to the playlist
+  socket.on('playlist:add', async ({ videoId }) => {
+    try {
+      const roomId = await roomOf();
+      if (!roomId || !videoId) return;
+      if (!(await isHost(roomId))) return;
+
+      const title = await fetchYouTubeTitle(videoId);
+      const item = {
+        id: nanoid(10),
+        videoId,
+        title,
+        addedById: socket.data.userId,
+        addedByName: socket.data.nickname || 'Unknown',
+      };
+      await rs.addPlaylistItem(roomId, item);
+
+      const currentId = await rs.getCurrentItemId(roomId);
+      if (!currentId) {
+        // Nothing playing → make this current (cued, host presses play)
+        await changeCurrent(io, rs, roomId, item.id, false);
+      } else {
+        await broadcastPlaylist(io, rs, roomId);
+      }
+    } catch (err) { console.error('[playlist:add]', err); }
+  });
+
+  // Viewer requests a video → goes to the pending list for host approval
+  socket.on('playlist:request', async ({ videoId }) => {
+    try {
+      const roomId = await roomOf();
+      if (!roomId || !videoId) return;
+
+      const title = await fetchYouTubeTitle(videoId);
+      await rs.addRequest(roomId, {
+        id: nanoid(10),
+        videoId,
+        title,
+        byId: socket.data.userId,
+        byName: socket.data.nickname || 'Unknown',
+      });
+      await broadcastRequests(io, rs, roomId);
+    } catch (err) { console.error('[playlist:request]', err); }
+  });
+
+  socket.on('playlist:approve', async ({ requestId }) => {
+    try {
+      const roomId = await roomOf();
+      if (!roomId) return;
+      if (!(await isHost(roomId))) return;
+
+      const req = await rs.removeRequest(roomId, requestId);
+      if (!req) return;
+
+      const item = {
+        id: nanoid(10),
+        videoId: req.videoId,
+        title: req.title,
+        addedById: req.byId,
+        addedByName: req.byName,
+      };
+      await rs.addPlaylistItem(roomId, item);
+
+      // Notify the requester
+      const reqSocketId = await rs.getSocketId(roomId, req.byId);
+      if (reqSocketId) {
+        io.to(reqSocketId).emit('request:result', { approved: true, title: req.title || req.videoId });
+      }
+
+      const currentId = await rs.getCurrentItemId(roomId);
+      if (!currentId) await changeCurrent(io, rs, roomId, item.id, false);
+      else await broadcastPlaylist(io, rs, roomId);
+      await broadcastRequests(io, rs, roomId);
+    } catch (err) { console.error('[playlist:approve]', err); }
+  });
+
+  socket.on('playlist:reject', async ({ requestId }) => {
+    try {
+      const roomId = await roomOf();
+      if (!roomId) return;
+      if (!(await isHost(roomId))) return;
+
+      const req = await rs.removeRequest(roomId, requestId);
+      if (req) {
+        const reqSocketId = await rs.getSocketId(roomId, req.byId);
+        if (reqSocketId) {
+          io.to(reqSocketId).emit('request:result', { approved: false, title: req.title || req.videoId });
+        }
+      }
+      await broadcastRequests(io, rs, roomId);
+    } catch (err) { console.error('[playlist:reject]', err); }
+  });
+
+  socket.on('playlist:remove', async ({ itemId }) => {
+    try {
+      const roomId = await roomOf();
+      if (!roomId) return;
+      if (!(await isHost(roomId))) return;
+
+      const currentId = await rs.getCurrentItemId(roomId);
+      if (itemId === currentId) {
+        const next = await rs.getNextItem(roomId); // item after the one being removed
+        await rs.removePlaylistItem(roomId, itemId);
+        await changeCurrent(io, rs, roomId, next ? next.id : null, true);
+      } else {
+        await rs.removePlaylistItem(roomId, itemId);
+        await broadcastPlaylist(io, rs, roomId);
+      }
+    } catch (err) { console.error('[playlist:remove]', err); }
+  });
+
+  socket.on('playlist:play', async ({ itemId }) => {
+    try {
+      const roomId = await roomOf();
+      if (!roomId) return;
+      if (!(await isHost(roomId))) return;
+      await changeCurrent(io, rs, roomId, itemId, true);
+    } catch (err) { console.error('[playlist:play]', err); }
+  });
+
+  socket.on('playlist:next', async () => {
+    try {
+      const roomId = await roomOf();
+      if (!roomId) return;
+      if (!(await isHost(roomId))) return;
+      const next = await rs.getNextItem(roomId);
+      if (next) await changeCurrent(io, rs, roomId, next.id, true);
+    } catch (err) { console.error('[playlist:next]', err); }
+  });
+}
+
+// ── Reactions (floating emoji overlay) ──────────────────────────
+
+function handleReaction(io: TypedServer, socket: TypedSocket, rs: RoomService): void {
+  socket.on('reaction:send', async ({ emoji }) => {
+    try {
+      if (!ALLOWED_REACTIONS.has(emoji)) return;
+      const roomId = socket.data.roomId ?? (await rs.getRoomByUser(socket.data.userId));
+      if (!roomId) return;
+      io.to(roomId).emit('reaction:broadcast', {
+        emoji,
+        nickname: socket.data.nickname || '',
+        id: nanoid(6),
+      });
+    } catch (err) { console.error('[reaction:send]', err); }
   });
 }
 
