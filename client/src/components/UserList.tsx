@@ -40,7 +40,7 @@ export default function UserList() {
                 isMe ? 'bg-brand-500/10 border border-brand-500/25' : 'hover:bg-warm-200/50 dark:hover:bg-warm-800/50'
               }`}
             >
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isHost ? 'bg-brand-500 shadow-sm shadow-brand-500/50' : 'bg-emerald-500'}`} />
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isHost ? 'bg-brand-500' : 'bg-emerald-500'}`} />
 
               <span className={`text-sm truncate flex-1 ${isMe ? 'text-brand-600 dark:text-brand-300 font-semibold' : 'text-warm-700 dark:text-warm-200'}`}>
                 {user.nickname}

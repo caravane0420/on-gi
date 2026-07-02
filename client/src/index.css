@@ -51,17 +51,17 @@ body {
 
 @layer components {
   .surface {
-    @apply bg-white/80 dark:bg-warm-900/70 border border-warm-200/80 dark:border-warm-800/70 shadow-sm;
+    @apply bg-white dark:bg-warm-900 border border-warm-200 dark:border-warm-800;
   }
 
+  /* Flat card: solid surface, thin warm border, very subtle shadow */
   .surface-raised {
-    @apply bg-white dark:bg-warm-900 border border-warm-200 dark:border-warm-800 shadow-lg shadow-warm-900/5 dark:shadow-black/30;
+    @apply bg-white dark:bg-warm-900 border border-warm-200 dark:border-warm-800 shadow-sm dark:shadow-none;
   }
 
+  /* Kept as a no-op so existing class refs don't break (glow removed) */
   .glow-brand {
-    box-shadow:
-      0 0 24px rgba(245, 158, 11, 0.12),
-      0 0 60px rgba(245, 158, 11, 0.05);
+    box-shadow: none;
   }
 }
 

@@ -110,12 +110,6 @@ export default function LobbyView() {
         <ThemeToggle />
       </div>
 
-      {/* Warm background glow */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-brand-400/20 dark:bg-brand-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-brand-300/20 dark:bg-brand-600/10 rounded-full blur-3xl" />
-      </div>
-
       {/* Kicked notification */}
       {kickedMessage && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
@@ -144,7 +138,7 @@ export default function LobbyView() {
         </div>
 
         {/* Card */}
-        <div className="surface-raised rounded-2xl p-8 glow-brand">
+        <div className="surface-raised rounded-2xl p-8">
           {/* Nickname */}
           <div className="mb-6">
             <label htmlFor="nickname" className="block text-xs font-semibold text-warm-500 dark:text-warm-400 mb-1.5 uppercase tracking-wider">
@@ -257,7 +251,7 @@ const inputCls =
   'w-full px-4 py-3 bg-warm-50 dark:bg-warm-850 border border-warm-200 dark:border-warm-800 rounded-xl text-warm-900 dark:text-warm-100 placeholder-warm-400 dark:placeholder-warm-600 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500/50 transition-all';
 
 const primaryBtn =
-  'w-full py-3 px-4 bg-gradient-to-r from-brand-500 to-brand-400 hover:from-brand-400 hover:to-brand-300 text-warm-950 font-bold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-brand-500/25 active:scale-[0.98]';
+  'w-full py-3 px-4 bg-brand-500 hover:bg-brand-600 text-warm-950 font-bold rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]';
 
 const secondaryBtn =
   'w-full py-3 px-4 bg-warm-100 dark:bg-warm-850 hover:bg-warm-200 dark:hover:bg-warm-800 border border-warm-200 dark:border-warm-800 text-warm-700 dark:text-warm-200 font-medium rounded-xl transition-all duration-200 disabled:opacity-50 active:scale-[0.98]';

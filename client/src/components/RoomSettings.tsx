@@ -45,7 +45,7 @@ export default function RoomSettings({ isOpen, onClose }: RoomSettingsProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-warm-950/50 backdrop-blur-sm animate-fade-in" onClick={onClose} />
 
-      <div className="relative w-full max-w-md surface-raised rounded-2xl p-6 glow-brand animate-slide-up">
+      <div className="relative w-full max-w-md surface-raised rounded-2xl p-6 animate-slide-up">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <GearIcon />
@@ -112,7 +112,7 @@ export default function RoomSettings({ isOpen, onClose }: RoomSettingsProps) {
             <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-warm-100 dark:bg-warm-850 hover:bg-warm-200 dark:hover:bg-warm-800 text-warm-700 dark:text-warm-200 text-sm font-medium rounded-xl transition-all">
               취소
             </button>
-            <button type="submit" className="flex-1 py-2.5 bg-gradient-to-r from-brand-500 to-brand-400 hover:from-brand-400 hover:to-brand-300 text-warm-950 text-sm font-bold rounded-xl transition-all shadow-lg shadow-brand-500/25 active:scale-[0.98]">
+            <button type="submit" className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-warm-950 text-sm font-bold rounded-xl transition-colors active:scale-[0.98]">
               {saved ? '✓ 저장됨' : '저장'}
             </button>
           </div>

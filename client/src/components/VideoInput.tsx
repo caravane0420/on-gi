@@ -43,7 +43,7 @@ export default function VideoInput() {
         </div>
         <button
           type="submit"
-          className="px-4 py-2.5 bg-brand-500 hover:bg-brand-400 text-warm-950 text-sm font-bold rounded-xl transition-all shadow-md shadow-brand-500/25 active:scale-95 flex-shrink-0"
+          className="px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-warm-950 text-sm font-bold rounded-xl transition-colors active:scale-95 flex-shrink-0"
         >
           변경
         </button>

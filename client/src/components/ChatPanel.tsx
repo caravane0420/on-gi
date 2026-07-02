@@ -87,7 +87,7 @@ export default function ChatPanel() {
           <button
             type="submit"
             disabled={!input.trim()}
-            className="px-3 py-2 bg-brand-500 hover:bg-brand-400 disabled:bg-warm-200 dark:disabled:bg-warm-800 disabled:text-warm-400 text-warm-950 rounded-lg transition-all text-sm font-medium active:scale-95"
+            className="px-3 py-2 bg-brand-500 hover:bg-brand-600 disabled:bg-warm-200 dark:disabled:bg-warm-800 disabled:text-warm-400 text-warm-950 rounded-lg transition-colors text-sm font-medium active:scale-95"
           >
             <SendIcon />
           </button>
