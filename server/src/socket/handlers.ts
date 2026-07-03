@@ -482,7 +482,9 @@ function handleChatMessage(
 
 // ── Playlist (add / request / approve / reject / remove / play / next) ──
 
-const ALLOWED_REACTIONS = new Set(['❤️', '😂', '👏', '🔥', '😮', '😢', '👍', '🎉']);
+const ALLOWED_REACTIONS = new Set([
+  '❤️', '😂', '👏', '🔥', '😮', '😢', '👍', '🎉', '🥵', '🖕', '💀',
+]);
 
 async function broadcastPlaylist(io: TypedServer, rs: RoomService, roomId: string): Promise<void> {
   const [playlist, currentItemId] = await Promise.all([

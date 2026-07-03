@@ -4,7 +4,7 @@
 
 import { useRoomStore } from '../stores/useRoomStore';
 
-const EMOJIS = ['❤️', '😂', '👏', '🔥', '😮', '😢', '👍', '🎉'];
+const EMOJIS = ['❤️', '😂', '👏', '🔥', '😮', '😢', '👍', '🎉', '🥵', '🖕', '💀'];
 
 export default function ReactionBar() {
   const sendReaction = useRoomStore((s) => s.sendReaction);
