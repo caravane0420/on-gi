@@ -5,11 +5,12 @@
 import { useYouTubePlayer } from '../hooks/useYouTubePlayer';
 import { useRoomStore } from '../stores/useRoomStore';
 import ReactionOverlay from './ReactionOverlay';
+import VolumeControl from './VolumeControl';
 
 const PLAYER_CONTAINER_ID = 'yt-player';
 
 export default function VideoPlayer() {
-  useYouTubePlayer(PLAYER_CONTAINER_ID);
+  const { playerRef } = useYouTubePlayer(PLAYER_CONTAINER_ID);
 
   const videoId = useRoomStore((s) => s.videoId);
   const isHost = useRoomStore((s) => s.isHost());
@@ -22,7 +23,7 @@ export default function VideoPlayer() {
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-warm-400 dark:text-warm-500">
             <PlayCircleIcon />
             <p className="text-sm">
-              {isHost ? '아래에서 영상 URL을 입력하세요' : '방장이 영상을 선택할 때까지 대기 중…'}
+              {isHost ? "'재생목록'에서 영상을 추가하세요" : '방장이 영상을 선택할 때까지 대기 중…'}
             </p>
           </div>
         )}
@@ -31,12 +32,16 @@ export default function VideoPlayer() {
         <ReactionOverlay />
       </div>
 
-      {/* Sync indicator */}
+      {/* Sync indicator + personal volume */}
       <div className="flex items-center gap-2 px-1">
         <div className={`w-2 h-2 rounded-full animate-pulse ${isHost ? 'bg-emerald-500' : 'bg-brand-500'}`} />
         <span className="text-xs text-warm-500 dark:text-warm-400">
           {isHost ? '방장 — 컨트롤 활성화' : '시청자 — 자동 동기화 중'}
         </span>
+        <div className="ml-auto flex items-center gap-1.5">
+          <span className="hidden sm:inline text-[11px] text-warm-400 dark:text-warm-600">내 볼륨</span>
+          <VolumeControl playerRef={playerRef} />
+        </div>
       </div>
     </div>
   );
