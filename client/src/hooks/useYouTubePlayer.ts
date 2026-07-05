@@ -121,8 +121,10 @@ export function useYouTubePlayer(containerId: string) {
         height: '100%',
         playerVars: {
           autoplay: 0,
-          controls: isHost ? 1 : 0,   // ← issue #9: host gets the full bar
-          disablekb: isHost ? 0 : 1,  // viewers can't scrub with the keyboard
+          // No native control bar for anyone — the host uses our custom
+          // controls (play/seek/volume), so there's a single volume UI.
+          controls: 0,
+          disablekb: 1,
           modestbranding: 1,
           rel: 0,
           playsinline: 1,
@@ -174,9 +176,10 @@ export function useYouTubePlayer(containerId: string) {
       }
       isReadyRef.current = false;
     };
-    // Re-create the player when host status changes (controls differ)
+    // Controls are the same for everyone now, so no need to recreate on
+    // host change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [containerId, isHost]);
+  }, [containerId]);
 
   // ── 2. Load video when videoId changes ────────────────────────
 

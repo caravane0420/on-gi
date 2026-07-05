@@ -6,6 +6,7 @@ import { useYouTubePlayer } from '../hooks/useYouTubePlayer';
 import { useRoomStore } from '../stores/useRoomStore';
 import ReactionOverlay from './ReactionOverlay';
 import VolumeControl from './VolumeControl';
+import HostControls from './HostControls';
 
 const PLAYER_CONTAINER_ID = 'yt-player';
 
@@ -32,17 +33,19 @@ export default function VideoPlayer() {
         <ReactionOverlay />
       </div>
 
-      {/* Sync indicator + personal volume */}
-      <div className="flex items-center gap-2 px-1">
-        <div className={`w-2 h-2 rounded-full animate-pulse ${isHost ? 'bg-emerald-500' : 'bg-brand-500'}`} />
-        <span className="text-xs text-warm-500 dark:text-warm-400">
-          {isHost ? '방장 — 컨트롤 활성화' : '시청자 — 자동 동기화 중'}
-        </span>
-        <div className="ml-auto flex items-center gap-1.5">
-          <span className="hidden sm:inline text-[11px] text-warm-400 dark:text-warm-600">내 볼륨</span>
-          <VolumeControl playerRef={playerRef} />
+      {/* Host: full custom controls · Viewer: status + personal volume */}
+      {isHost ? (
+        <HostControls playerRef={playerRef} />
+      ) : (
+        <div className="flex items-center gap-2 px-1">
+          <div className="w-2 h-2 rounded-full animate-pulse bg-brand-500" />
+          <span className="text-xs text-warm-500 dark:text-warm-400">시청자 — 자동 동기화 중</span>
+          <div className="ml-auto flex items-center gap-1.5">
+            <span className="hidden sm:inline text-[11px] text-warm-400 dark:text-warm-600">내 볼륨</span>
+            <VolumeControl playerRef={playerRef} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
